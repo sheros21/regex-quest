@@ -17,6 +17,12 @@ import { ModeToggle } from "../ui/mode-toggle"
 import HighlightedRegexText from "../highlighted-regex-text"
 import CountUpTimer from "../CountUpTimer"
 
+type LevelRecord = {
+  level: Level;
+  regex: string;
+  results: Array<{ text: string; shouldMatch: boolean; matches: boolean; correct: boolean }>;
+}
+
 export default function Game() {
   const [currentLevel, setCurrentLevel] = useState(0)
   const [regex, setRegex] = useState("");
@@ -30,6 +36,7 @@ export default function Game() {
   const [seconds, setSeconds] = useState(0);
   const [disableHighlight, setDisableHighlight] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const [levelHistory, setLevelHistory] = useState<LevelRecord[]>([]);
   const sfxPopRef = useRef<HTMLAudioElement | null>(null)
   const sfxVictoryRef = useRef<HTMLAudioElement | null>(null)
   const [wrongAnimKey, setWrongAnimKey] = useState(0);
@@ -92,6 +99,7 @@ export default function Game() {
   const handleSubmit = () => {
     setSubmitted(true);
     if (submitted && allCorrect) {
+      setLevelHistory(prev => [...prev, { level, regex, results }]);
       setCurrentLevel(currentLevel + 1)
       setSubmitted(false);
       setDisableHighlight(true);
@@ -103,25 +111,23 @@ export default function Game() {
       setScore(score + points)
 
       if (currentLevel < levels.length - 1) {
-        // setCurrentLevel(currentLevel + 1)
         setDisableHighlight(false);
-        // setRegex("")
-        // setAttempts(0)
         setShowHint(false)
         toast.success(getRandomPraise(), {
           richColors: true,
           duration: 3000
         })
-        const sound = new Audio('/correct.mp3'); // Make sure the path is correct
+        const sound = new Audio('/correct.mp3');
         sound.volume = .35;
         sound.play();
       } else {
+        setLevelHistory(prev => [...prev, { level, regex, results }]);
         setGameComplete(true);
       }
     } else {
       setDisableHighlight(false);
       triggerWrongAnim();
-      const sound = new Audio('/wrong.mp3'); // Make sure the path is correct
+      const sound = new Audio('/wrong.mp3');
       sound.volume = .5;
       sound.play();
       setTimeout(() => {
@@ -141,6 +147,7 @@ export default function Game() {
     setRegexError("");
     setSubmitted(false);
     setDisableHighlight(true);
+    setLevelHistory([]);
   }
 
 
@@ -170,48 +177,76 @@ export default function Game() {
     })
   }, [gameComplete])
 
-  if (gameComplete) {
+  if (gameComplete || gameOver) {
+    const isWin = gameComplete;
     return (
       <div className="max-w-2xl mx-auto p-3 space-y-6">
-        <Card className="text-center">
-          <CardHeader>
+        <Card>
+          <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <Trophy className="w-16 h-16 text-yellow-500" />
+              {isWin
+                ? <Trophy className="w-16 h-16 text-yellow-500" />
+                : <Skull className="w-16 h-16 text-gray-500" />}
             </div>
-            <CardTitle className="text-2xl">Congratulations!</CardTitle>
-            <CardDescription>You've completed all of the ReGex challenges!</CardDescription>
+            <CardTitle className="text-2xl">
+              {isWin ? "Congratulations!" : "Game Over"}
+            </CardTitle>
+            <CardDescription>
+              {isWin ? "You've completed all of the ReGex challenges!" : "You've run out of lives!"}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600 mb-4">Final Score: {score}</div>
-            <div className="text-3xl font-bold text-green-600 mb-4">Time Elapsed: {seconds} seconds</div>
-            <Button onClick={resetGame} className="gap-2 cursor-pointer">
-              <RotateCcw className="w-4 h-4" />
-              Play Again
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+          <CardContent className="space-y-6">
+            <div className="flex justify-center gap-8 text-center">
+              <div>
+                <div className="text-2xl font-bold text-green-600">{score}</div>
+                <div className="text-sm text-muted-foreground">Final Score</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">{seconds}s</div>
+                <div className="text-sm text-muted-foreground">Time Elapsed</div>
+              </div>
+            </div>
 
-  if (gameOver) {
-    return (
-      <div className="max-w-2xl mx-auto p-3 space-y-6">
-        <Card className="text-center">
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-              <Skull className="w-16 h-16 text-gray-500" />
+            {levelHistory.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm">Your Answers:</h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                  {levelHistory.map((record, i) => (
+                    <div key={i} className="border rounded-lg p-3 space-y-2 text-left">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="shrink-0">Level {i + 1}</Badge>
+                        <span className="font-medium text-sm">{record.level.title}</span>
+                      </div>
+                      <div className="font-mono text-sm bg-muted px-2 py-1 rounded break-all">
+                        {record.regex}
+                      </div>
+                      <div className="space-y-1">
+                        {record.results.map((r, j) => (
+                          <div key={j} className="flex items-center gap-2 text-xs">
+                            {r.correct
+                              ? <CheckCircle className="w-3 h-3 text-green-600 shrink-0" />
+                              : <XCircle className="w-3 h-3 text-red-600 shrink-0" />}
+                            <code className="font-mono">{r.text}</code>
+                            {!r.correct && (
+                              <Badge variant="outline" className="text-xs ml-auto shrink-0">
+                                {r.shouldMatch ? "should match" : "should not match"}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-center">
+              <Button onClick={resetGame} className="gap-2 cursor-pointer">
+                <RotateCcw className="w-4 h-4" />
+                Play Again
+              </Button>
             </div>
-            <CardTitle className="text-2xl">Game Over</CardTitle>
-            <CardDescription>You've run out of lives!</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600 mb-4">Final Score: {score}</div>
-            <div className="text-3xl font-bold text-green-600 mb-4">Time Elapsed: {seconds} seconds</div>
-            <Button onClick={resetGame} className="gap-2 cursor-pointer">
-              <RotateCcw className="w-4 h-4" />
-              Play Again
-            </Button>
           </CardContent>
         </Card>
       </div>
