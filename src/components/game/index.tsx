@@ -23,7 +23,6 @@ export default function Game() {
   const regexInputRef = useRef<HTMLInputElement | null>(null);
   const [regexObj, setRegexObj] = useState<RegExp | null>(null);
   const [score, setScore] = useState(0)
-  const [life, setLife] = useState(5)
   const [showHint, setShowHint] = useState(false)
   const [gameComplete, setGameComplete] = useState(false)
   const [gameOver, setGameOver] = useState(false);
@@ -100,7 +99,7 @@ export default function Game() {
       return;
     }
     if (allCorrect) {
-      const points = Math.max(100 - life * 10, 10)
+      const points = Math.max(100 - 1 * 10, 10)
       setScore(score + points)
 
       if (currentLevel < levels.length - 1) {
@@ -128,12 +127,6 @@ export default function Game() {
       setTimeout(() => {
         regexInputRef.current?.focus();
       }, 0);
-      if (life - 1 <= 0) {
-        setGameOver(true);
-        return;
-      }
-      setLife(life - 1);
-      // setAttempts(attempts + 1)
     }
   }
 
@@ -142,7 +135,6 @@ export default function Game() {
     setRegex("")
     setRegexObj(null);
     setScore(0)
-    setLife(5)
     setShowHint(false)
     setGameComplete(false)
     setGameOver(false)
@@ -236,7 +228,6 @@ export default function Game() {
             Level {currentLevel + 1}/{levels.length}
           </Badge>
           <Badge variant="outline" className="text-sm">Score: {score}</Badge>
-          <Badge variant="outline" className="text-sm">Life: {life}</Badge>
           <Badge variant="outline" className="text-sm">
             <CountUpTimer seconds={seconds} setSeconds={setSeconds} />
           </Badge>
@@ -339,13 +330,9 @@ export default function Game() {
               <TestStrings regex={regex} results={results} level={level} regexObj={regexObj} disableHighlight={disableHighlight} submitted={submitted} />
             </div>
           </div>
-
-          {life > 2 && !showHint && (
-            <Button variant="outline" onClick={() => setShowHint(true)} className="w-full">
-              Show Hint
-            </Button>
-          )}
-
+          <Button variant="outline" onClick={() => setShowHint(true)} className="w-full">
+            Show Hint
+          </Button>
           {showHint && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
