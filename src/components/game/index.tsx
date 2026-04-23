@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, Target, Trophy, RotateCcw, Lightbulb, Skull } from "lucide-react"
+import { CheckCircle, XCircle, Target, Trophy, RotateCcw, Lightbulb, Skull, ChevronRight } from "lucide-react"
 import Image from "next/image";
 import { Level, levels } from "@/lib/levels"
 import Link from "next/link"
@@ -134,6 +134,21 @@ export default function Game() {
         regexInputRef.current?.focus();
       }, 0);
     }
+  }
+
+  const handleSkip = () => {
+    setLevelHistory(prev => [...prev, { level, regex, results }]);
+    if (currentLevel >= levels.length - 1) {
+      setGameComplete(true);
+      return;
+    }
+    setCurrentLevel(currentLevel + 1);
+    setRegex("");
+    setRegexObj(null);
+    setSubmitted(false);
+    setDisableHighlight(true);
+    setShowHint(false);
+    setRegexError("");
   }
 
   const resetGame = () => {
@@ -346,6 +361,11 @@ export default function Game() {
                   setShowHint(true)
                 }} className="gap-2 cursor-pointer" title="Show Hint">
                   <Lightbulb />
+                </Button>
+
+                <Button variant="outline" onClick={handleSkip} className="gap-2 cursor-pointer" title="Skip this level">
+                  <ChevronRight className="w-4 h-4" />
+                  Skip
                 </Button>
               </div>
             </div>
